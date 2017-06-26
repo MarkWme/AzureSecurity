@@ -7,6 +7,30 @@ It is possible to separate out access control for those activities relating to t
 ### Role Based Access Control (RBAC)
 RBAC works with Azure Active Directory to control the storage account
 
+Column A | Column B | Column C
+---------|----------|---------
+ A1 | B1 | C1
+ A2 | B2 | C2
+ A3 | B3 | C3
+
+Operation | Description
+--------- | -----------
+Microsoft.Storage/register/action | Registers the Storage Resource Provider
+Microsoft.Storage/checknameavailability/read | Check Name Availability
+Microsoft.Storage/storageAccounts/write | Create/Update Storage Account
+Microsoft.Storage/storageAccounts/delete | Delete Storage Account
+Microsoft.Storage/storageAccounts/listkeys/action | List Storage Account Keys
+Microsoft.Storage/storageAccounts/regeneratekey/action | Regenerate Storage Account Keys
+Microsoft.Storage/storageAccounts/read | List/Get Storage Account(s)
+Microsoft.Storage/storageAccounts/listAccountSas/action | Returns Storage Account SAS Token
+Microsoft.Storage/storageAccounts/listServiceSas/action | Returns Storage Service SAS Token
+Microsoft.Storage/storageAccounts/services/diagnosticSettings/write | Create/Update Diagnostic Settings
+Microsoft.Storage/skus/read | List Skus
+Microsoft.Storage/usages/read | Get Subscription Usages
+Microsoft.Storage/operations/read | Poll Asynchronous Operation
+Microsoft.Storage/locations/deleteVirtualNetworkOrSubnets/action | Delete virtual network or subnets notifications
+
+
 ### Access Keys
 All Storage Accounts have two 512-bit access keys - effectively very long, complex passwords - that, if known, permit full access to all data within a storage account. These keys should be treated with the same level of care as any highly privileged account, such as administrative accounts for servers or Active Directory domains.
 
