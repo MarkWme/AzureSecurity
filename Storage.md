@@ -7,12 +7,6 @@ It is possible to separate out access control for those activities relating to t
 ### Role Based Access Control (RBAC)
 RBAC works with Azure Active Directory to control the storage account
 
-Column A | Column B | Column C
----------|----------|---------
- A1 | B1 | C1
- A2 | B2 | C2
- A3 | B3 | C3
-
 Operation | Description
 --------- | -----------
 Microsoft.Storage/register/action | Registers the Storage Resource Provider
