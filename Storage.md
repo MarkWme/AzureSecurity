@@ -1,27 +1,42 @@
-# Security for Azure Storage Accounts
+# Azure Storage Accounts - Best Practices for Secure Development and Operations
 
 ## Introduction
 
-Azure Storage Accounts provide in-built methods to allow you to control and monitor access to the account and the data contained within it. This document explains what those methods are and how other Azure services can be used to provide increased security, monitoring, alerting and auditing.
+Azure Storage is a Platform as a Service offering, with access to data provided via a combination of URI's accessible over the Internet and secret access keys. There is sometimes concern, particularly in security concious or regulated industries, that because the endpoints are publicly accessible, that a loss or theft of the keys that secure access to the account could result in data loss.
+
+Azure Storage Accounts provide built-in methods to allow you to control and monitor access to the account and the data contained within it. This document explains what those methods are and how other Azure services can be used alongside them to provide increased security, monitoring, alerting and auditing.
 
 # Storage Accounts
-
-Blob, File, Queue, Table
+Azure Storage Accounts provide a unique namespace to store and access your Azure Storage data objects. Storage Accounts give you access to Azure Storage services such as tables, queues, files, blobs and virtual machine disks.
 
 ## Access Control
 
-Azure Storage Accounts offer three methods of controlling access to storage accounts and the data contained within those accounts.
+Azure Storage Accounts offer three methods of controlling access to storage accounts and the data contained within those accounts. Role Based Access Control, Access Keys and Shared Access Signatures.
 
-It is possible to separate out access control for those activities relating to the management of the storage account - the *Management Plane* - and the data stored in an account - the *Data Plane*.
+Access control for those activities relating to the management of the storage account - the **Management Plane** - and the data stored in an account - the **Data Plane**, can be separated out, allowing for separation of concerns to be implemented so that, for example, an administrator can manage the storage account but not have access to data.
 
 ### Role Based Access Control (RBAC)
-RBAC works with Azure Active Directory to control access to the storage account's management plane. Specific roles can be assigned to users or groups from your Azure Active Directory tenant which can then limit the operations those users or groups can perform.
+RBAC works with Azure Active Directory to control access to the storage account's **management plane**. Specific roles can be assigned to users, groups or applications (service principals) from your Azure Active Directory tenant which can then limit the operations those users, groups or applications can perform.
 
-Built-in Roles are predefined groups of operations that make it easy to get started quickly in the most common scenarios. However, you can build your own custom roles by combining one or more operations ...
+Built-in Roles are predefined groups of operations that make it easy to get started quickly in the most common scenarios, such as granting read-only access or full control to a resource. You can view a list of all built-in roles using a PowerShell command like this:
 
-<command line for custom role / operations list>
+```
+Get-AzureRmRoleDefinition | FT Name
+```
 
-**Custom Roles**
+RBAC roles contain `Actions` and `NotActions`, effectively things that are allowed or not allowed to be performed by a role. You can view the `Actions` for a specific role like this:
+
+```
+(Get-AzureRmRoleDefinition -Name "Storage Account Contributor").Actions
+```
+
+You may discover that you cannot find a built-in role that meets your exact needs. In that case, Custom Roles allow you to define your own roles from a list of possible operations. To determine the operations that are available for a particular resource type, you can use a PowerShell command like the following:
+
+```
+Get-AzureRMProviderOperation Microsoft.Storage/* | FT Operation, OperationName
+```
+
+... which will list all of the operations available for Storage.  The result of that command looks like this:
 
 Operation | Description
 --------- | -----------
@@ -40,9 +55,14 @@ Microsoft.Storage/usages/read | Get Subscription Usages
 Microsoft.Storage/operations/read | Poll Asynchronous Operation
 Microsoft.Storage/locations/deleteVirtualNetworkOrSubnets/action | Delete virtual network or subnets notifications
 
+From this list you can see, for example, that operations exist for `listkeys` and `regeneratekey`. Creating a custom role using those operations will allow you to restrict a user, group or application to only being able to list access keys or regenerate new ones and perform no other management functions in the Storage Account.
 
 ### Access Keys
+Whilst RBAC secures access to and operations on your Storage Account at the **management plane**, Access Keys and SAS tokens - which we'll discuss in the next section - control access to the data in your storage account. The **data plane**.
+
 All Storage Accounts have two 512-bit access keys - effectively very long, complex passwords - that, if known, permit full access to all data within a storage account. These keys should be treated with the same level of care as any highly privileged account, such as administrative accounts for servers or Active Directory domains.
+
+![Storage Account Access Keys](/images/storage-account-access-keys.png)
 
 It is good practice to develop a key rotation policy, whereby the access keys are regenerated on a regular basis. This is similar to having a password policy, where users are required to change passwords on a regular basis. Regenerating a key immediately replaces it with a new key and has the effect of revoking access to all data until applications or services are updated to make use of the new key.
 
