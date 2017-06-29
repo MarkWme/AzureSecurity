@@ -1,3 +1,13 @@
+# Security for Azure Storage Accounts
+
+## Introduction
+
+Azure Storage Accounts provide in-built methods to allow you to control and monitor access to the account and the data contained within it. This document explains what those methods are and how other Azure services can be used to provide increased security, monitoring, alerting and auditing.
+
+# Storage Accounts
+
+Blob, File, Queue, Table
+
 ## Access Control
 
 Azure Storage Accounts offer three methods of controlling access to storage accounts and the data contained within those accounts.
@@ -11,7 +21,7 @@ Built-in Roles are predefined groups of operations that make it easy to get star
 
 <command line for custom role / operations list>
 
-Custom Roles
+**Custom Roles**
 
 Operation | Description
 --------- | -----------
@@ -64,7 +74,42 @@ Account Level SAS
 Stored Access Policy
 
 
-### Azure Key Vault
+# Azure Key Vault
+
+## Access Control
+
+As with Storage Accounts, Azure Key Vault has different methods available to secure access to the Management Plane, which affects the operation of the Key Vault itself and the Data Plane, which is access to the secrets and keys stored there.
+
+### Role Based Access Control
+
+To retrieve a current list of KeyVault operations that could be used as part of a custom role, use the following PowerShell command.
+
+```
+Get-AzureRMProviderOperation Microsoft.KeyVault/* | FT Operation, OperationName
+```
+
+Operation | Description
+--------- | -----------
+Microsoft.KeyVault/register/action|Register Subscription
+Microsoft.KeyVault/unregister/action|Unregister Subscription
+Microsoft.KeyVault/checkNameAvailability/read|Check Name Availability
+Microsoft.KeyVault/vaults/read|View Key Vault
+Microsoft.KeyVault/vaults/write|Update Key Vault
+Microsoft.KeyVault/vaults/delete|Delete Key Vault
+Microsoft.KeyVault/vaults/deploy/action|Use Vault for Azure Deployments
+Microsoft.KeyVault/vaults/secrets/read|View Secret Properties
+Microsoft.KeyVault/vaults/secrets/write|Update Secret
+Microsoft.KeyVault/vaults/accessPolicies/write|Update Access Policy
+Microsoft.KeyVault/operations/read|Available Key Vault Operations
+Microsoft.KeyVault/deletedVaults/read|View Soft Deleted Vaults
+Microsoft.KeyVault/locations/operationResults/read|Check Operation Result
+Microsoft.KeyVault/locations/deletedVaults/read|View Soft Deleted Key Vault
+Microsoft.KeyVault/locations/deletedVaults/purge/action|Purge Soft Deleted Key Vault
+
+### Access Policies
+Data Plane - Access Policies
+
+
 
 ## Encryption
 
@@ -78,17 +123,58 @@ Encryption in transit / at rest
 
 ## Recommended Actions
 
-### Access Control Recommendation
+### Summary
 
-- Define a key rotation policy with an interval that adequately provides a suitable level of risk exposure based on the sensitivity of your data
-- Define an emergency key rotation process to be effected should a leak occur between key rotation intervals
-- The number of people / services with access to storage account access keys should be kept to a minimum. Access keys should be treated as highly sensitive information.
-- Using Azure Active Directory and Role Based Access Control, restrict access to list and regenerate storage account tokens
-- Client / application access to data should be through Shared Access Signature tokens
-- Use Key Vault as a secure store from which access keys and SAS tokens can be retrieved
-- Consider implementing a SAS token service or front end proxy between the client / application and the storage account
+- Access keys should be treated as highly sensitive information. Restrict access to the storage account management plane and minimise the number of people or services with direct access to storage account access keys.
+- Define a key rotation policy with an interval that meets your risk requirements.
+- Define an emergency key rotation process to be effected should a leak occur between key rotation intervals.
+- Provide access to storage account keys via Key Vault
+- Access to data should only be through Shared Access Signature tokens.
+- Authenticated applications request SAS tokens from Key Vault or a SAS token service
 
-Access keys in key vault - Yes
+### 1. Restrict access to Storage Account Access Keys
+Azure Storage Account access keys provide full access to everything within a storage account and therefore should be treated with the same level of care as any highly sensitive account credentials.
+
+The built-in Owner, Contributor, Storage Account Contributor, Virtual Machine Contributor roles all grant access to view storage account access keys, therefore also allowing anyone assigned these roles access to all data.
+
+A custom role can be defined to restrict access to storage account access keys by including the **ListKeys** and **RegenerateKey** actions and then assigning that role only to staff with the appropriate level of security clearance.
+
+Do not use storage account access keys as a method for providing applications with access to data.
+
+
+### 2. Key Rotation
+
+A storage account access key can effectively be thought of as a long, complex password. As is normal practice in most organisations today, it is sensible to change passwords on a regular basis and the same is true for storage account access keys.
+
+Each storage account has two access keys defined. This allows you to regenerate access keys alternately in order to minimise disruption to applications. For example, to regenerate `key1`, you would ensure that all applications that access the storage account switch over to using `key2`. You then regenerate `key1`. Then, at the next key rotation interval, you repeat the process by switching applications over to `key1`, then regenerating `key2`.
+
+Regenerating storage account keys also has the effect of invalidating any SAS tokens signed with that key. So, regenerating the keys will also force all applications using SAS tokens to request a new token.
+
+You need to determine a key rotation period that meets the security and risk requirements for your organisation and the sensitivity of the data in the storage account. It can sometimes take up to 10 minutes for a newly generated key to fully propagate, so beware of making the rotation period too short. In practice, the shortest realistic time period to regularly rotate keys is 1 hour.
+
+SAS tokens can be configured with a start and end date and time which an application can easily read as the values are contained within the SAS token itself. Co-ordinate the key rotation period with SAS token generation to set expiration within the rotation period. An application will then know when the SAS token is going to expire and can request a new token before the next key rotation takes place.
+
+You should also create an emergency key rotation policy that can force regeneration of new keys on demand should a security breach, leak of access keys, key employee termination or other event occur that necessitates a reset of all keys. Applications will need to be aware that this policy exists and that, despite what the expiration of a SAS token may be, it's possible it could become invalidated via the emergency process. Applications would need to handle permission denied errors and obtain new SAS tokens as required.
+
+### 3. Automate Key Rotation with Azure Key Vault
+
+To help reduce the need to provide access to the management plane of the Storage Account, you can secure the access keys by storing them in Azure Key Vault. Applications that need to obtain Storage Account access keys can retrieve them from Azure Key Vault, without needing access to the Storage Account itself. Using Key Vault also means that applications do not need to store the access keys in the application's settings or configuration files.
+
+To implement a regular key rotation policy, you will need to write a simple application or automation script to regenerate keys on the required schedule. The tool you write to do this would use an Azure Active Directory service prinicipal to authenticate with both the Storage Account and Key Vault. That service principal can then be given only the `Set` permission in Key Vault, to allow it to write the new keys to the vault and the `ListKeys` and `RegenerateKey` actions as a custom RBAC role on the Storage Account.  The application can then regenerate the Storage Account access keys and write the new keys to Key Vault.
+
+Note: Azure Key Vault has an integrated Storage Account access key rotation feature in preview. This feature will replace the need to create a separate application to perform regular key rotation. See [Azure Key Vault Storage Account Keys](https://docs.microsoft.com/en-us/azure/key-vault/key-vault-ovw-storage-keys) for more information.
+
+### 3. Automating Key Rotation
+
+Standard / Emergency policies
+Use an application to rotate keys automatically
+Use KeyVault integrated rotation when available
+
+
+### 3. Use Key Vault 
+
+
+
 SAS keys in Key Vault or via a SAS token service [Review: Best method for generating SAS tokens]
 
 
@@ -97,3 +183,5 @@ Obtain keys from Key Vault
 Use 2 keys. Apps could hold both keys. When access is denied on key 1, the app can switch to key 2 immediately to avoid any delay or interuption to service. When this happens, the app should be aware that key 1 has been regenerated and should begin a background task to obtain the new key. The application is then ready to switch to the new key 1 when key 2 is regenerated.
 
 SAS proxy / auth service
+
+Restrict "Contributor" level access, as this role allows members to set Key Vault policy, therefore allowing them to grant themselves access to data held in the vault.
