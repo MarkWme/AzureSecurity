@@ -60,7 +60,7 @@ From this list you can see, for example, that operations exist for `listkeys` an
 ### Access Keys
 Whilst RBAC secures access to and operations on your Storage Account at the **management plane**, Access Keys and SAS tokens - which we'll discuss in the next section - control access to the data in your storage account. The **data plane**.
 
-All Storage Accounts have two 512-bit access keys - effectively very long, complex passwords - that, if known, permit full access to all data within a storage account. These keys should be treated with the same level of care as any highly privileged account, such as administrative accounts for servers or Active Directory domains.
+All Storage Accounts have two 512-bit access keys - effectively very long, complex passwords - that, if known, permit **full access to all data within a storage account**. These keys should be treated with the same level of care as any highly privileged account, such as administrative accounts for servers or Active Directory domains or SSH keys.
 
 ![Storage Account Access Keys](/images/storage-account-access-keys.png)
 
@@ -72,27 +72,42 @@ The frequency with which you want to regenerate your keys should be the result o
 
 For a low risk scenario, you may wish to have a key rotation period of weeks or months, with policies covering exceptional scenarios, such as if a member of staff with access to keys leaves the organisation or if a key has been leaked. Conversely, where data is considered to be highly sensitive and the risk for data loss needs to be minimised, you could generate new keys on an hourly basis.
 
-Management Plane apps vs Data Plane apps?
-
 ### Shared Access Signature
-A shared access signature allows access to the data within a Storage Account, but with constraints to allow control over what can be accessed and how. Whereas access keys grant full access to a storage account, a shared access signature can:
+A shared access signature allows access to the data within a Storage Account, but with flexibility to allow control over what can be accessed and how. Whereas the access keys discussed in the previous section grant full access to a storage account, a shared access signature can:
 
-- Limit access to any of blobs, containers, queues, files or tables.
-- Restrict permissions to read, write, delete, list, add, create, update or process
+- Limit access to any or a combination of blobs, containers, queues, files or tables.
+- Restrict permissions to read, write, delete, list, add, create, update or process.
 - Specify permitted IP addresses that may access the data.
-- Define start and end times during which a shared access signature is valid
-- Force HTTPS to be used
+- Define start and end times during which a shared access signature is valid.
+- Force HTTPS to be used.
+
+![Storage Account SAS Options](/images/storage-account-sas-options.png)
 
 A shared access signature takes the form of a string appended to the URL of the storage account. It contains the values which define the access restrictions as listed above and a signature which is generated from those values combined with one of the storage account access keys.
 
+```
+?sv=2016-05-31&ss=b&srt=o&sp=r&se=2017-06-30T06:55:02Z&st=2017-06-29T22:55:02Z&spr=https&sig=GHg2czv4j63P0xjwM5We82rFQeR8XeSncnWfCh6WlcU%3D
+```
+
+The above example SAS token can be broken down as follows:
+SAS Token Element|Description
+---|---
+sv=2016-05-31|Storage service version
+ss=b|Token applies to  **B**lob storage
+srt=o|Resource type is **O**bject
+sp=r|Permission is **R**ead
+se=2017-06-30T06:55:02Z|Expiry time
+st=2017-06-29T22:55:02Z|Start time
+spr=https|Protocol - Only allow HTTPS
+sig=GHg2czv4j63P0xjwM5We82rFQeR8XeSncnWfCh6WlcU%3D|Signature
+
 Because the shared access signature is signed using the storage account access key, regenerating the keys will cause all shared access signatures to become invalid. Therefore it is important to ensure that any key rotation policy gives due consideration to the impact this has on shared access signatures and the need for them to be regenerated too.
 
-Service Level SAS
+Two types of SAS token can be generated. Service Level and Account Level.
 
-Account Level SAS
+Service Level SAS tokens are applied to one specific service - blob, table, queue or file. They also support Stored Access Policies, which allow you to define parameters for a SAS token, such as permissions and start / expiry dates and times. All SAS tokens created from a Stored Access Policy can be modified after they have been issued, to give new permissions or change the expiration date for example. A Stored Access Policy can be deleted, which has the effect of invalidating all SAS tokens created from it, effectively providing a mechanism to revoke a SAS token.
 
-Stored Access Policy
-
+Account Level SAS tokens can apply to multiple services. However, they do not support Stored Access Policies. This means that an Account Level SAS token can only be revoked by regenerating the Storage Account Access Key, which will also invalidate all SAS tokens created with that key, or by waiting for the SAS token to expire.
 
 # Azure Key Vault
 
