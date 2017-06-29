@@ -181,3 +181,29 @@ Applications will need to obtain a new SAS token before the current one expires.
 1. Build a SAS Token Service. Applications then authenticate with the SAS Token service and are issued with a new SAS token. You can implement whatever business logic required to permit the issuing of new tokens and providing logging of requests.
 
 2. Create an automation script or application that automatically generates new SAS tokens on a regular basis and synchronised with the key rotation policy. New SAS tokens are written to Key Vault. Applications then retrieve SAS tokens from Key Vault. Key Vault's diagnostic logs can be used to track requests to obtain tokens.
+
+### Example Scenario
+
+![Example Scenario](/images/examplescenario.png)
+
+The above example is one possible way to implement a secure solution for accessing Storage Accounts.  The flows shown are as follows:
+
+**Flow A - Key Rotation**
+1. An Azure Function provides a key rotation service. This is executed on a timer trigger, for example, every hour on the hour.
+2. The Function app uses a service principal to authenticate with Azure Active Directory.
+3. The Function app regenerates the Storage Account key.
+4. The Function app stores the updated Storage Account key in Key Vault.
+
+**Flow B - SAS Token Service**
+1. The SAS Token Service receives a request from an application for a new SAS token
+2. The Function app uses a service principal to authenticate with Azure Active Directory.
+3. The Function app retrieves the Storage Account key from Key Vault
+4. The Function app generates a SAS token
+5. The Function app sends the SAS token to the application
+
+**Flow C - Application Access**
+1. The application authenticates with Azure Active Directory
+2. The application sends a request to the SAS Token Service
+3. The application receives a new SAS token.
+4. The applicaiton accesses the data using the SAS token.
+
