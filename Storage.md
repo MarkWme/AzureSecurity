@@ -125,6 +125,8 @@ Encryption in transit / at rest
 
 ### Summary
 
+The following summarises the recommended actions, which are then described in more detail.
+
 - Access keys should be treated as highly sensitive information. Restrict access to the storage account management plane and minimise the number of people or services with direct access to storage account access keys.
 - Define a key rotation policy with an interval that meets your risk requirements.
 - Define an emergency key rotation process to be effected should a leak occur between key rotation intervals.
@@ -164,24 +166,18 @@ To implement a regular key rotation policy, you will need to write a simple appl
 
 Note: Azure Key Vault has an integrated Storage Account access key rotation feature in preview. This feature will replace the need to create a separate application to perform regular key rotation. See [Azure Key Vault Storage Account Keys](https://docs.microsoft.com/en-us/azure/key-vault/key-vault-ovw-storage-keys) for more information.
 
-### 3. Automating Key Rotation
+### 4. Use Shared Access Signature (SAS) Tokens
 
-Standard / Emergency policies
-Use an application to rotate keys automatically
-Use KeyVault integrated rotation when available
+Applications that need access to data should be granted via a Shared Access Signature (SAS) token. SAS tokens can be configured to control access as follows.
 
+- Restrict the SAS token to only the service required - Blob, File, Queue or Table.
+- Restrict the SAS token to only the permission required - Read, Write, Delete, List, Add, Create, Update, Process
+- Allow the HTTPS protocol only.
+- If possible, restrict the IP address range to the known IP addresses for the application
+- Set the start and expiry date and time. Co-ordinate this with your key rotation period to help avoid interruption to service.
 
-### 3. Use Key Vault 
+Applications will need to obtain a new SAS token before the current one expires. Two ways to acheive this could be
 
+1. Build a SAS Token Service. Applications then authenticate with the SAS Token service and are issued with a new SAS token. You can implement whatever business logic required to permit the issuing of new tokens and providing logging of requests.
 
-
-SAS keys in Key Vault or via a SAS token service [Review: Best method for generating SAS tokens]
-
-
-Obtain keys from Key Vault
-
-Use 2 keys. Apps could hold both keys. When access is denied on key 1, the app can switch to key 2 immediately to avoid any delay or interuption to service. When this happens, the app should be aware that key 1 has been regenerated and should begin a background task to obtain the new key. The application is then ready to switch to the new key 1 when key 2 is regenerated.
-
-SAS proxy / auth service
-
-Restrict "Contributor" level access, as this role allows members to set Key Vault policy, therefore allowing them to grant themselves access to data held in the vault.
+2. Create an automation script or application that automatically generates new SAS tokens on a regular basis and synchronised with the key rotation policy. New SAS tokens are written to Key Vault. Applications then retrieve SAS tokens from Key Vault. Key Vault's diagnostic logs can be used to track requests to obtain tokens.
