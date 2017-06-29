@@ -90,16 +90,17 @@ A shared access signature takes the form of a string appended to the URL of the 
 ```
 
 The above example SAS token can be broken down as follows:
-SAS Token Element|Description
----|---
-sv=2016-05-31|Storage service version
-ss=b|Token applies to  **B**lob storage
-srt=o|Resource type is **O**bject
-sp=r|Permission is **R**ead
-se=2017-06-30T06:55:02Z|Expiry time
-st=2017-06-29T22:55:02Z|Start time
-spr=https|Protocol - Only allow HTTPS
-sig=GHg2czv4j63P0xjwM5We82rFQeR8XeSncnWfCh6WlcU%3D|Signature
+
+SAS Token Element | Description
+------------------|------------
+sv=2016-05-31 | Storage service version
+ss=b | Token applies to  **B**lob storage
+srt=o | Resource type is **O**bject
+sp=r | Permission is **R**ead
+se=2017-06-30T06:55:02Z | Expiry time
+st=2017-06-29T22:55:02Z | Start time
+spr=https | Protocol - Only allow HTTPS
+sig=GHg2czv4j63P0xjwM5We82rFQeR8XeSncnWfCh6WlcU%3D | Signature
 
 Because the shared access signature is signed using the storage account access key, regenerating the keys will cause all shared access signatures to become invalid. Therefore it is important to ensure that any key rotation policy gives due consideration to the impact this has on shared access signatures and the need for them to be regenerated too.
 
